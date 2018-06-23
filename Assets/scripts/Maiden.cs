@@ -4,11 +4,11 @@ using UnityEngine;
 
 public class Maiden : MonoBehaviour {
 
-    public Main.Side side;
+    public Main.Team side;
 
     private void OnTriggerEnter2D(Collider2D collision) {
         Character character = collision.GetComponent<Character>();
-        if (character != null && character.screenSide != side && !character.CarryingMaiden) {
+        if (character != null && character.team != side && !character.CarryingMaiden) {
             character.SetMaiden(this);
         }
     }

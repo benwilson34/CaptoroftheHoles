@@ -6,9 +6,11 @@ using UnityEngine;
 public class Character : MonoBehaviour {
 
     public const float JUMP_FORCE = 15f;
-    public float grav = -100f;
+    private const float FALL_GRAV = 68f, HIGHJUMP_GRAV = 35f;
+    public float currentGrav = FALL_GRAV;
     //public bool wasTeleported = false, readyToTeleport = true;
-    public Main.Side screenSide = Main.Side.Left;
+    public Main.Team team = Main.Team.Red;
+    GamePad.Index controllerNum = GamePad.Index.One;
 
     private enum ButtonState { None, Down, Hold, Up };
     private Rigidbody2D _rb;
@@ -24,7 +26,7 @@ public class Character : MonoBehaviour {
     private float _cooldown;
     public bool CanTeleport { get { return _cooldown < 0.005f; } }
 
-    private enum Direction { None, Up, UpRight, Right, DownRight, Down, DownLeft, Left, UpLeft };
+    private enum Direction { None = -1, Right, UpRight, Up, UpLeft, Left, DownLeft, Down, DownRight };
     private Direction _lastDirection;
     private Direction _lastLeftOrRight = Direction.Right;
     private bool _facingLeft = false;
@@ -35,8 +37,16 @@ public class Character : MonoBehaviour {
     private Maiden _maiden;
     public bool CarryingMaiden { get { return _maiden != null; } }
 
+    private bool _isAlive = true;
+
     void Start () {
         _rb = GetComponent<Rigidbody2D>();
+        _rb.velocity = new Vector2(0, -1);
+        Debug.Log(_rb.velocity.ToString());
+
+        if (team == Main.Team.Blue)
+            controllerNum = GamePad.Index.Two;
+
         _groundCheck = transform.Find("groundCheck");
         _lastFrameState = GamePad.GetState(GamePad.Index.One);
     }
@@ -44,18 +54,14 @@ public class Character : MonoBehaviour {
     void FixedUpdate () {
         UpdateGrav();
 
-        GamePad.Index controllerNum = GamePad.Index.One;
-        if (screenSide == Main.Side.Right)
-            controllerNum = GamePad.Index.Two;
+        if (!_isAlive)
+            return;
 
         GamepadState state = GamePad.GetState(controllerNum);
 
-        Vector2 movement = GamePad.GetAxis(GamePad.Axis.Dpad, controllerNum);
-        HandleMovement(movement);
-        HandleAim(state);
-
+        Direction aimDirection = HandleDpad(state);
         HandleAButton(GetButtonState(state, GamePad.Button.A));
-        HandleXButton(GetButtonState(state, GamePad.Button.Y));
+        HandleXButton(GetButtonState(state, GamePad.Button.Y), aimDirection);
         HandleR2(GetButtonState(state, GamePad.Button.RightShoulder));
 
         HandleTouches();
@@ -66,6 +72,25 @@ public class Character : MonoBehaviour {
         if (!CanTeleport) {
             _cooldown -= PORTAL_COOLDOWN * Time.deltaTime;
         }
+    }
+
+    Direction HandleDpad(GamepadState state) {
+        HandleMovement(state.dPadAxis);
+
+        Direction dir = GetDirection(state);
+        if (dir != _lastDirection) {
+            if (dir == Direction.None) {
+                var lastLeftOrRight = GetLeftOrRight(_lastDirection);
+                AimInDirection(lastLeftOrRight);
+                _lastDirection = lastLeftOrRight;
+            } else {
+                AimInDirection(dir);
+                _lastDirection = dir;
+                Debug.Log(dir.ToString());
+            }
+        }
+
+        return _lastDirection;
     }
 
     void HandleMovement(Vector2 movement) {
@@ -86,60 +111,11 @@ public class Character : MonoBehaviour {
         _rb.velocity = vel;
     }
 
-    void HandleAim(GamepadState state) {
-        Direction dir = GetDirection(state);
-        if (_lastDirection == dir)
-            return;
-
-        AimInDirection(dir);
-
-        _lastDirection = dir;
-    }
-
     void AimInDirection(Direction dir) {
         var pivot = transform.Find("armPivot");
-        var arm = pivot.Find("arm");
-        switch (dir) {
-            case Direction.None:
-                AimInDirection(_lastLeftOrRight);
-                break;
-            case Direction.Up:
-                pivot.rotation = Quaternion.Euler(new Vector3(0, pivot.rotation.y, 90));
-                break;
-            case Direction.UpRight:
-                pivot.rotation = Quaternion.Euler(new Vector3(0, pivot.rotation.y, 45));
-                break;
-            case Direction.Right:
-                pivot.rotation = Quaternion.Euler(new Vector3(0, pivot.rotation.y, 0));
-                break;
-            case Direction.DownRight:
-                pivot.rotation = Quaternion.Euler(new Vector3(0, pivot.rotation.y, -45));
-                break;
-            case Direction.Down:
-                pivot.rotation = Quaternion.Euler(new Vector3(0, pivot.rotation.y, -90));
-                break;
-            case Direction.DownLeft:
-                pivot.rotation = Quaternion.Euler(new Vector3(0, pivot.rotation.y, 135));
-                break;
-            case Direction.Left:
-                pivot.rotation = Quaternion.Euler(new Vector3(0, pivot.rotation.y, 180));
-                break;
-            case Direction.UpLeft:
-                pivot.rotation = Quaternion.Euler(new Vector3(0, pivot.rotation.y, 225));
-                break;
-            default:
-                break;
-        }
-
-        Direction leftOrRight = GetLeftOrRight(dir);
-        //Debug.Log("leftOrRight =" + leftOrRight.ToString());
-        //if (leftOrRight == Direction.Left) {
-        //    transform.localScale = new Vector3(-1, 1, 1);
-        //} else if (leftOrRight == Direction.Right) {
-        //    transform.localScale = new Vector3(1, 1, 1);
-        //}
-        if(leftOrRight == Direction.Left || leftOrRight == Direction.Right)
-            _lastLeftOrRight = leftOrRight;
+        //var arm = pivot.Find("arm");
+        float angle = DirToAngle(dir);
+        pivot.rotation = Quaternion.Euler(new Vector3(0, pivot.rotation.y, angle));
     }
 
     Direction GetDirection(GamepadState state) {
@@ -192,6 +168,10 @@ public class Character : MonoBehaviour {
     //    }
     //}
 
+    float DirToAngle(Direction dir) {
+        return (float)dir * 45f;
+    }
+
     void UpdateGrav() {
         //if (_groundCheckFrames == 0)
             _grounded = Physics2D.Linecast(transform.position,
@@ -199,16 +179,20 @@ public class Character : MonoBehaviour {
         //else
         //    _groundCheckFrames--;
 
-        float vel = _rb.velocity.y;
+        float velY = _rb.velocity.y;
+        //Debug.Log(velY);
 
-        if (_grounded) // TODO keep track of last frame for optimization
-            vel = 0;
-        else {
-            vel += grav * Time.deltaTime;
+        //if (Mathf.Abs(velY) < 0.005f) // TODO keep track of last frame for optimization
+        //    velY = 0;
+        //else {
+        if (!_grounded) {
+            velY -= currentGrav * Time.deltaTime;
         }
 
+       
+
         //Debug.Log("y vel="+vel);
-        _rb.velocity = new Vector2(_rb.velocity.x, vel);
+        _rb.velocity = new Vector2(_rb.velocity.x, velY);
     }
 
     void HandleTouches() {
@@ -274,20 +258,22 @@ public class Character : MonoBehaviour {
                 _grounded = false;
                 _jumpVelocity = JUMP_FORCE;
                 _rb.velocity = new Vector2(_rb.velocity.x, _jumpVelocity);
+                currentGrav = HIGHJUMP_GRAV;
                 break;
 
             case ButtonState.Hold:
-                const float jumpDecay = -40;
-                if (_jumpVelocity > 1f) {
-                    _jumpVelocity += jumpDecay * Time.deltaTime;
-                    _rb.velocity = new Vector2(_rb.velocity.x, _jumpVelocity);
-                } else {
-                    _jumpVelocity = 0;
-                }
+                //const float jumpDecay = -40;
+                //if (_jumpVelocity > 1f) {
+                //    _jumpVelocity += jumpDecay * Time.deltaTime;
+                //    _rb.velocity = new Vector2(_rb.velocity.x, _jumpVelocity);
+                //} else {
+                //    _jumpVelocity = 0;
+                //}
                 break;
 
             case ButtonState.Up:
                 _jump = false;
+                currentGrav = FALL_GRAV;
                 break;
 
             default:
@@ -295,7 +281,7 @@ public class Character : MonoBehaviour {
         }
     }
 
-    void HandleXButton(ButtonState state) {
+    void HandleXButton(ButtonState state, Direction aimDirection) {
         switch (state) {
             case ButtonState.None:
                 break;
@@ -305,9 +291,9 @@ public class Character : MonoBehaviour {
                 var bullet = Instantiate(bulletPF).GetComponent<Bullet>();
                 Transform pivot = transform.Find("armPivot");
                 Transform bulletSpawn = pivot.Find("bulletSpawn");
-                Transform gunback = pivot.Find("gunBack");
-                bullet.moveDirection = bulletSpawn.position - gunback.position;
-                bullet.side = screenSide;
+                //Transform gunback = pivot.Find("gunBack");
+                //bullet.moveDirection = bulletSpawn.position - gunback.position;
+                bullet.Init(team, DirToAngle(aimDirection));
                 bullet.transform.position = bulletSpawn.position;
                 break;
 
@@ -344,5 +330,22 @@ public class Character : MonoBehaviour {
             default:
                 break;
         }
+    }
+
+    public void Die() {
+        if (_isAlive) {
+            _isAlive = false;
+            StartCoroutine(_DeathAnim());
+        }
+    }
+    IEnumerator _DeathAnim() {
+        const float respawnTime = 2f; // 2 second respawn time
+        //var rend = GetComponent<SpriteRenderer>();
+        //rend.color = new Color(1, 1, 1, 0.5f);
+        yield return new WaitForSeconds(respawnTime/2);
+        //rend.enabled = false;
+        yield return new WaitForSeconds(respawnTime/2);
+        Main.GetSafehouse(team).SpawnPlayer();
+        Destroy(this.gameObject);
     }
 }

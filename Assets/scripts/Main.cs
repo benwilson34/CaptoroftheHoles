@@ -4,13 +4,13 @@ using UnityEngine;
 
 public class Main : MonoBehaviour {
 
-    public enum Side { Left, Right };
+    public enum Team { Red, Blue };
     public Transform levelObjects;
     public Transform middleWall;
 
-    public static int leftScore = 0, rightScore = 0;
+    public static int redScore = 0, blueScore = 0;
 
-    private Safehouse leftPlayerSafehouse, rightPlayerSafehouse;
+    private static Safehouse redPlayerSafehouse, bluePlayerSafehouse;
 
     // Use this for initialization
     void Start() {
@@ -34,11 +34,11 @@ public class Main : MonoBehaviour {
             }
 
             if (obj.GetComponent<Safehouse>() != null) {
-                leftPlayerSafehouse = obj.GetComponent<Safehouse>();
-                leftPlayerSafehouse.Init();
-                rightPlayerSafehouse = mirrorObj.GetComponent<Safehouse>();
-                rightPlayerSafehouse.side = Side.Right;
-                rightPlayerSafehouse.Init();
+                redPlayerSafehouse = obj.GetComponent<Safehouse>();
+                redPlayerSafehouse.Init();
+                bluePlayerSafehouse = mirrorObj.GetComponent<Safehouse>();
+                bluePlayerSafehouse.side = Team.Blue;
+                bluePlayerSafehouse.Init();
             }
         }
 
@@ -50,11 +50,15 @@ public class Main : MonoBehaviour {
 
     }
 
-    public static void ScorePoint(Side side) {
-        if (side == Side.Left) {
-            leftScore++;
+    public static void ScorePoint(Team team) {
+        if (team == Team.Red) {
+            redScore++;
         } else {
-            rightScore++;
+            blueScore++;
         }
+    }
+
+    public static Safehouse GetSafehouse(Team team) {
+        return team == Team.Red ? redPlayerSafehouse : bluePlayerSafehouse;
     }
 }

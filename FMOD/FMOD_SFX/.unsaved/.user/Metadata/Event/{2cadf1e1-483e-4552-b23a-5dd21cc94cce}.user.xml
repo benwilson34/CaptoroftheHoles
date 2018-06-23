@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.01.10.00">
+    <object class="Event" id="{2cadf1e1-483e-4552-b23a-5dd21cc94cce}">
+        <relationship name="uiLastParameterSelection">
+            <destination>{56f61bc4-7c78-41b4-9d83-0f77f93d9bc0}</destination>
+        </relationship>
+    </object>
+    <object class="MasterTrack" id="{024c1138-40ce-40cb-be8d-1c6c162a9f71}"/>
+    <object class="MixerInput" id="{64b1f884-1d14-46bf-94d6-196e2c828a4a}"/>
+    <object class="EventAutomatableProperties" id="{09e36386-00dc-45dd-843e-93694c1a12b9}"/>
+    <object class="MarkerTrack" id="{7ecb107e-a9e5-4155-9b9d-7ef1843c8783}"/>
+    <object class="GroupTrack" id="{83e5d157-f176-4e3e-8aeb-764e9d5dabfd}"/>
+    <object class="Timeline" id="{56f61bc4-7c78-41b4-9d83-0f77f93d9bc0}">
+        <property name="uiLastRulerScaleRatio">
+            <value>0.02461033634126333</value>
+        </property>
+    </object>
+    <object class="EventMixerMaster" id="{c582b05c-6704-4389-8708-c4ee6f291254}">
+        <relationship name="input">
+            <destination>{573cd0a6-f5a1-4b0c-8950-b71c333e8ad2}</destination>
+        </relationship>
+    </object>
+    <object class="MixerBusEffectChain" id="{af18e126-d398-49ed-b2bd-31a4c2592448}"/>
+    <object class="MixerBusPanner" id="{4548ef1e-b94b-4a65-a1d1-dd14dddba1b6}"/>
+    <object class="EventMixerGroup" id="{573cd0a6-f5a1-4b0c-8950-b71c333e8ad2}"/>
+    <object class="MixerBusEffectChain" id="{802cd4c8-f38e-4e27-90c0-0f4799467f52}"/>
+    <object class="MixerBusPanner" id="{6fdbfa7b-46ba-429c-a626-8a5a65329be3}"/>
+    <object class="MixerBusFader" id="{7d0fa9f2-d21e-4497-b7a8-554786ad85e8}"/>
+    <object class="MixerBusEffectChain" id="{133beac2-77d0-4666-bd20-65ad96acca71}"/>
+    <object class="MixerBusPanner" id="{68e2968f-37e3-47e3-aa05-de20cced09b8}"/>
+    <object class="MixerBusFader" id="{5ad37a21-20e1-4491-87cd-7f0674bbe772}"/>
+    <object class="MixerBusFader" id="{c2aad202-513f-4f0a-a81f-9b6851aba909}"/>
+</objects>

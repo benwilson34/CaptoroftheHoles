@@ -5,7 +5,7 @@ using UnityEngine;
 public class Safehouse : MonoBehaviour {
 
     public GameObject playerPF, maidenPF;
-    public Main.Side side = Main.Side.Left;
+    public Main.Team side = Main.Team.Red;
 
     private Transform spawnPoint;
 
@@ -23,7 +23,7 @@ public class Safehouse : MonoBehaviour {
 
     public void SpawnPlayer() {
         var player = Instantiate(playerPF);
-        player.GetComponent<Character>().screenSide = side;
+        player.GetComponent<Character>().team = side;
         player.transform.position = spawnPoint.position;
     }
 
