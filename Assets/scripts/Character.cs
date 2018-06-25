@@ -27,7 +27,7 @@ public class Character : MonoBehaviour {
     public bool CanTeleport { get { return _cooldown < 0.005f; } }
 
     private enum Direction { None = -1, Right, UpRight, Up, UpLeft, Left, DownLeft, Down, DownRight };
-    private Direction _lastDirection;
+    private Direction _lastDirection, _directionTwoFramesAgo;
     private Direction _lastLeftOrRight = Direction.Right;
     private bool _facingLeft = false;
 
@@ -78,13 +78,17 @@ public class Character : MonoBehaviour {
         HandleMovement(state.dPadAxis);
 
         Direction dir = GetDirection(state);
-        if (dir != _lastDirection) {
+        if (dir != GetDirection(_lastFrameState)) {
             if (dir == Direction.None) {
                 var lastLeftOrRight = GetLeftOrRight(_lastDirection);
+                if (lastLeftOrRight == Direction.None) // only up or down i think
+                    lastLeftOrRight = GetLeftOrRight(_directionTwoFramesAgo);
                 AimInDirection(lastLeftOrRight);
+                _directionTwoFramesAgo = _lastDirection;
                 _lastDirection = lastLeftOrRight;
             } else {
                 AimInDirection(dir);
+                _directionTwoFramesAgo = _lastDirection;
                 _lastDirection = dir;
                 Debug.Log(dir.ToString());
             }
@@ -114,8 +118,16 @@ public class Character : MonoBehaviour {
     void AimInDirection(Direction dir) {
         var pivot = transform.Find("armPivot");
         //var arm = pivot.Find("arm");
-        float angle = DirToAngle(dir);
-        pivot.rotation = Quaternion.Euler(new Vector3(0, pivot.rotation.y, angle));
+
+        float angle = ProperAimAngle(dir);
+        pivot.rotation = Quaternion.Euler(0, 0, angle);
+
+        // flip if needed
+        if (dir != Direction.Up && dir != Direction.Down) {
+            Vector3 scale = Vector3.one;
+            scale.x = GetLeftOrRight(dir) == Direction.Right ? 1 : -1;
+            transform.localScale = scale;
+        }
     }
 
     Direction GetDirection(GamepadState state) {
@@ -167,6 +179,26 @@ public class Character : MonoBehaviour {
     //        //transform.Rotate(0, 180, 0);
     //    }
     //}
+
+    float ProperAimAngle(Direction dir) {
+        Debug.Log("Aiming to " + dir.ToString());
+        switch (dir) {
+            case Direction.Down:
+                return 90 * 
+                    (GetLeftOrRight(_lastDirection) == Direction.Left ? 1 : -1);
+            case Direction.Up:
+                return 90 * 
+                    (GetLeftOrRight(_lastDirection) == Direction.Left ? -1 : 1);
+            case Direction.Left:
+                return DirToAngle(Direction.Right);
+            case Direction.UpLeft:
+                return DirToAngle(Direction.DownRight);
+            case Direction.DownLeft:
+                return DirToAngle(Direction.UpRight);
+            default:
+                return DirToAngle(dir);
+        }
+    }
 
     float DirToAngle(Direction dir) {
         return (float)dir * 45f;
